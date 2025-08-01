@@ -60,6 +60,33 @@ const initialVoices: Voice[] = [
     previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
   },
   {
+    id: 'aria-trending',
+    name: 'Aria',
+    category: 'trending',
+    description: 'Modern Gen-Z voice perfect for social media content',
+    isTrending: true,
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'kai-energetic',
+    name: 'Kai',
+    category: 'trending',
+    description: 'Energetic male voice for gaming and sports content',
+    isTrending: true,
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'nova-ai',
+    name: 'Nova',
+    category: 'trending',
+    description: 'Futuristic AI-assistant voice for tech content',
+    isTrending: true,
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
     id: 'emma-friendly',
     name: 'Emma',
     category: 'professional',
@@ -88,6 +115,70 @@ const initialVoices: Voice[] = [
     name: 'Scarlett Style',
     category: 'celebrity',
     description: 'Sultry female voice with distinctive tone',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-david',
+    name: 'David Attenborough Style',
+    category: 'celebrity',
+    description: 'Legendary nature documentarian voice with British accent',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-benedict',
+    name: 'Benedict Style',
+    category: 'celebrity',
+    description: 'Sophisticated British voice with dramatic flair',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-ryan',
+    name: 'Ryan Reynolds Style',
+    category: 'celebrity',
+    description: 'Witty Canadian voice with sarcastic charm',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-emma-stone',
+    name: 'Emma Stone Style',
+    category: 'celebrity',
+    description: 'Quirky and expressive voice with natural warmth',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-samuel',
+    name: 'Samuel L. Jackson Style',
+    category: 'celebrity',
+    description: 'Commanding voice with unforgettable presence',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-oprah',
+    name: 'Oprah Style',
+    category: 'celebrity',
+    description: 'Inspiring and empowering voice with emotional depth',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-matthew',
+    name: 'Matthew McConaughey Style',
+    category: 'celebrity',
+    description: 'Laid-back Southern drawl with philosophical tone',
+    quality: 'ultra',
+    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+  },
+  {
+    id: 'celebrity-keanu',
+    name: 'Keanu Reeves Style',
+    category: 'celebrity',
+    description: 'Calm and contemplative voice with gentle intensity',
     quality: 'ultra',
     previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
   }
@@ -131,10 +222,13 @@ export default function App() {
         }
         
         // Generate realistic voice preview
+        const maleVoices = ['Marcus', 'James', 'Morgan', 'David', 'Benedict', 'Ryan', 'Samuel', 'Matthew', 'Keanu', 'Kai']
+        const isMaleVoice = maleVoices.some(name => voice.name.includes(name))
+        
         await audioManager.generateVoicePreview({
           voiceId: voice.id,
           category: voice.category,
-          gender: voice.name.includes('Marcus') || voice.name.includes('James') || voice.name.includes('Morgan') ? 'male' : 'female'
+          gender: isMaleVoice ? 'male' : 'female'
         })
         
         setPlayingVoiceId(voice.id)
