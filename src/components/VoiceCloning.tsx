@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Upload, Microphone, Play, Pause, Trash, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
+import { Upload, Microphone, Play, Pause, Trash, CheckCircle, XCircle, Clock, Warning } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { WaveformVisualizer } from '@/components/AudioVisualizer'
+import { audioManager } from '@/lib/audioManager'
 import { toast } from 'sonner'
 
 interface AudioSample {
@@ -15,6 +17,8 @@ interface AudioSample {
   file: File
   duration: number
   url: string
+  isValid: boolean
+  error?: string
 }
 
 interface VoiceCloningProps {
@@ -32,30 +36,41 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
   const [playingId, setPlayingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     
-    files.forEach(file => {
+    for (const file of files) {
       if (file.type.startsWith('audio/')) {
-        const url = URL.createObjectURL(file)
-        const audio = new Audio(url)
-        
-        audio.addEventListener('loadedmetadata', () => {
+        try {
+          // Validate audio file
+          const validation = await AudioManager.validateAudioFile(file)
+          
+          if (!validation.isValid) {
+            toast.error(`${file.name}: ${validation.error}`)
+            continue
+          }
+
+          const url = URL.createObjectURL(file)
           const sample: AudioSample = {
             id: Date.now().toString() + Math.random(),
             name: file.name,
             file,
-            duration: audio.duration,
-            url
+            duration: validation.metadata?.duration || 0,
+            url,
+            isValid: true
           }
           
           setAudioSamples(prev => [...prev, sample])
           toast.success(`Added ${file.name} to voice samples`)
-        })
+          
+        } catch (error) {
+          console.error('File validation error:', error)
+          toast.error(`Failed to process ${file.name}`)
+        }
       } else {
         toast.error(`${file.name} is not an audio file`)
       }
-    })
+    }
     
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -72,24 +87,38 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
         chunks.push(event.data)
       }
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const blob = new Blob(chunks, { type: 'audio/wav' })
         const url = URL.createObjectURL(blob)
         const file = new File([blob], `recording-${Date.now()}.wav`, { type: 'audio/wav' })
         
-        const audio = new Audio(url)
-        audio.addEventListener('loadedmetadata', () => {
+        try {
+          // Validate recorded audio
+          const validation = await AudioManager.validateAudioFile(file)
+          
+          if (!validation.isValid) {
+            toast.error(`Recording error: ${validation.error}`)
+            URL.revokeObjectURL(url)
+            return
+          }
+
           const sample: AudioSample = {
             id: Date.now().toString(),
             name: file.name,
             file,
-            duration: audio.duration,
-            url
+            duration: validation.metadata?.duration || 0,
+            url,
+            isValid: true
           }
           
           setAudioSamples(prev => [...prev, sample])
           toast.success('Recording added to voice samples')
-        })
+          
+        } catch (error) {
+          console.error('Recording validation error:', error)
+          toast.error('Failed to process recording')
+          URL.revokeObjectURL(url)
+        }
         
         stream.getTracks().forEach(track => track.stop())
       }
@@ -112,14 +141,29 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
     }
   }
 
-  const playAudio = (sample: AudioSample) => {
-    const audio = new Audio(sample.url)
-    audio.addEventListener('ended', () => setPlayingId(null))
-    audio.play()
-    setPlayingId(sample.id)
+  const playAudio = async (sample: AudioSample) => {
+    try {
+      await audioManager.playAudio(sample.url, `sample-${sample.id}`)
+      setPlayingId(sample.id)
+      
+      // Monitor playback completion
+      const checkCompletion = () => {
+        if (!audioManager.isPlaying(`sample-${sample.id}`)) {
+          setPlayingId(null)
+        } else {
+          setTimeout(checkCompletion, 100)
+        }
+      }
+      checkCompletion()
+      
+    } catch (error) {
+      console.error('Sample playback error:', error)
+      toast.error('Failed to play audio sample')
+    }
   }
 
-  const pauseAudio = () => {
+  const pauseAudio = (sample: AudioSample) => {
+    audioManager.stopAudio(`sample-${sample.id}`)
     setPlayingId(null)
   }
 
@@ -142,6 +186,12 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
 
     if (audioSamples.length < 2) {
       toast.error('Please provide at least 2 audio samples for better quality')
+      return
+    }
+
+    const validSamples = audioSamples.filter(s => s.isValid)
+    if (validSamples.length !== audioSamples.length) {
+      toast.error('Please ensure all audio samples are valid before cloning')
       return
     }
 
@@ -241,6 +291,18 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
               <Microphone className="w-4 h-4 mr-2" />
               {isRecording ? 'Stop Recording' : 'Start Recording'}
             </Button>
+            
+            {/* Recording Visualizer */}
+            {isRecording && (
+              <div className="bg-muted/30 rounded-lg p-3 mt-2">
+                <WaveformVisualizer 
+                  isRecording={isRecording}
+                  height={40}
+                  className="rounded"
+                />
+              </div>
+            )}
+            
             <p className="text-xs text-muted-foreground">
               Speak clearly for 10-30 seconds per sample.
             </p>
@@ -291,11 +353,14 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
             <Label>Audio Samples ({audioSamples.length})</Label>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {audioSamples.map(sample => (
-                <div key={sample.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                <div key={sample.id} className={`flex items-center gap-3 p-3 border rounded-lg ${
+                  !sample.isValid ? 'border-destructive bg-destructive/5' : ''
+                }`}>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => playingId === sample.id ? pauseAudio() : playAudio(sample)}
+                    onClick={() => playingId === sample.id ? pauseAudio(sample) : playAudio(sample)}
+                    disabled={!sample.isValid}
                   >
                     {playingId === sample.id ? (
                       <Pause className="w-4 h-4" />
@@ -305,9 +370,17 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
                   </Button>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{sample.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium truncate">{sample.name}</div>
+                      {!sample.isValid && (
+                        <Warning className="w-4 h-4 text-destructive" />
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {Math.round(sample.duration)}s duration
+                      {sample.error && (
+                        <span className="text-destructive ml-2">• {sample.error}</span>
+                      )}
                     </div>
                   </div>
                   
