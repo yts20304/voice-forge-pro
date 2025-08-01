@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Play, Pause, Download, VolumeHigh, Copy, FileText } from '@phosphor-icons/react'
+import { useState, useRef } from 'react'
+import { Play, Pause, Download, SpeakerHigh, Copy, FileText, SpeakerLow } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AudioVisualizer } from '@/components/AudioVisualizer'
+import { audioManager } from '@/lib/audioManager'
 import { toast } from 'sonner'
 
 interface Voice {
@@ -37,10 +39,11 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState([1.0])
   const [pitch, setPitch] = useState([1.0])
+  const [volume, setVolume] = useState([0.8])
   const [quality, setQuality] = useState('high')
   const [isPlaying, setIsPlaying] = useState(false)
   const [generatedAudio, setGeneratedAudio] = useState<GeneratedAudio | null>(null)
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const handleGenerate = async () => {
     if (!selectedVoice || !text.trim()) {
@@ -57,6 +60,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
       const settings = {
         speed: speed[0],
         pitch: pitch[0],
+        volume: volume[0],
         quality
       }
       
@@ -68,24 +72,44 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
     }
   }
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!generatedAudio) return
 
-    if (currentAudio) {
+    const audioId = `text-to-speech-${generatedAudio.id}`
+
+    try {
       if (isPlaying) {
-        currentAudio.pause()
+        audioManager.stopAudio(audioId)
         setIsPlaying(false)
       } else {
-        currentAudio.play()
+        await audioManager.playAudio(generatedAudio.audioUrl, audioId)
+        
+        // Get the audio element for visualization
+        const audioInstance = audioManager.getAudioInstance(audioId)
+        if (audioInstance) {
+          currentAudioRef.current = audioInstance.audio
+        }
+        
+        // Apply current settings
+        audioManager.setVolume(audioId, volume[0])
+        audioManager.setPlaybackRate(audioId, speed[0])
+        
         setIsPlaying(true)
+        
+        // Monitor playback completion
+        const checkCompletion = () => {
+          if (!audioManager.isPlaying(audioId)) {
+            setIsPlaying(false)
+          } else {
+            setTimeout(checkCompletion, 100)
+          }
+        }
+        checkCompletion()
       }
-    } else {
-      const audio = new Audio(generatedAudio.audioUrl)
-      audio.addEventListener('ended', () => setIsPlaying(false))
-      audio.addEventListener('pause', () => setIsPlaying(false))
-      audio.play()
-      setCurrentAudio(audio)
-      setIsPlaying(true)
+    } catch (error) {
+      console.error('Audio playback error:', error)
+      setIsPlaying(false)
+      toast.error('Failed to play audio. Please try again.')
     }
   }
 
@@ -145,7 +169,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
           </div>
 
           {/* Advanced Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
             <div className="space-y-2">
               <Label>Speech Speed</Label>
               <Slider
@@ -173,6 +197,28 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
             </div>
 
             <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <SpeakerLow className="w-3 h-3" />
+                Volume
+              </Label>
+              <Slider
+                value={volume}
+                onValueChange={(value) => {
+                  setVolume(value)
+                  // Apply volume to currently playing audio
+                  if (generatedAudio && isPlaying) {
+                    audioManager.setVolume(`text-to-speech-${generatedAudio.id}`, value[0])
+                  }
+                }}
+                max={1}
+                min={0}
+                step={0.05}
+                className="w-full"
+              />
+              <span className="text-xs text-muted-foreground">{Math.round(volume[0] * 100)}%</span>
+            </div>
+
+            <div className="space-y-2">
               <Label>Audio Quality</Label>
               <Select value={quality} onValueChange={setQuality}>
                 <SelectTrigger>
@@ -195,12 +241,12 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
           >
             {isGenerating ? (
               <>
-                <VolumeHigh className="w-5 h-5 mr-2 animate-pulse" />
+                <SpeakerHigh className="w-5 h-5 mr-2 animate-pulse" />
                 Generating Voice... {Math.round(generationProgress)}%
               </>
             ) : (
               <>
-                <VolumeHigh className="w-5 h-5 mr-2" />
+                <SpeakerHigh className="w-5 h-5 mr-2" />
                 Generate Voice
               </>
             )}
@@ -217,7 +263,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <VolumeHigh className="w-5 h-5 text-accent" />
+              <SpeakerHigh className="w-5 h-5 text-accent" />
               Generated Audio
             </CardTitle>
             <CardDescription>
@@ -225,38 +271,50 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePlayPause}
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </Button>
-              
-              <div className="flex-1">
-                <div className="text-sm font-medium mb-1">
-                  {generatedAudio.text.substring(0, 100)}
-                  {generatedAudio.text.length > 100 && '...'}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Duration: {generatedAudio.duration}s • Created: {generatedAudio.createdAt.toLocaleTimeString()}
-                </div>
+            <div className="space-y-4">
+              {/* Audio Visualizer */}
+              <div className="bg-muted/30 rounded-lg p-3">
+                <AudioVisualizer 
+                  audioElement={currentAudioRef.current || undefined}
+                  isPlaying={isPlaying}
+                  height={50}
+                  className="rounded"
+                />
               </div>
+              
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePlayPause}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                </Button>
+                
+                <div className="flex-1">
+                  <div className="text-sm font-medium mb-1">
+                    {generatedAudio.text.substring(0, 100)}
+                    {generatedAudio.text.length > 100 && '...'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Duration: {generatedAudio.duration}s • Created: {generatedAudio.createdAt.toLocaleTimeString()}
+                  </div>
+                </div>
 
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleDownload}
-                className="bg-accent hover:bg-accent/90"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download MP3
-              </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="bg-accent hover:bg-accent/90"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download MP3
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

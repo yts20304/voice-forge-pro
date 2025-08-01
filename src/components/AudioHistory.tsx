@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Clock, Download, Play, Pause, Trash2, FileAudio, Calendar } from '@phosphor-icons/react'
+import { Clock, Download, Play, Pause, Trash, FileAudio, Calendar } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { audioManager } from '@/lib/audioManager'
+import { toast } from 'sonner'
 
 interface GeneratedAudio {
   id: string
@@ -51,12 +53,18 @@ export function AudioHistory({ audioHistory, onDeleteAudio, onPlayAudio, isPlayi
     .map(voiceId => audioHistory.find(audio => audio.voice.id === voiceId)!.voice)
 
   const handleDownload = (audio: GeneratedAudio) => {
-    const link = document.createElement('a')
-    link.href = audio.audioUrl
-    link.download = `voiceforge-${audio.voice.name}-${audio.id}.mp3`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    try {
+      const link = document.createElement('a')
+      link.href = audio.audioUrl
+      link.download = `voiceforge-${audio.voice.name}-${audio.id}.mp3`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Audio downloaded successfully!')
+    } catch (error) {
+      console.error('Download error:', error)
+      toast.error('Failed to download audio')
+    }
   }
 
   const getTotalDuration = () => {
@@ -200,7 +208,7 @@ export function AudioHistory({ audioHistory, onDeleteAudio, onPlayAudio, isPlayi
                         onClick={() => onDeleteAudio(audio.id)}
                         className="text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
