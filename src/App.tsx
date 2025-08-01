@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Toaster } from '@/components/ui/sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -9,32 +10,6 @@ import { VoiceCloning } from '@/components/VoiceCloning'
 import { AudioHistory } from '@/components/AudioHistory'
 import { audioManager } from '@/lib/audioManager'
 import { toast } from 'sonner'
-
-// Simple localStorage hook replacement
-function useKV<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
-  const [state, setState] = useState<T>(() => {
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : defaultValue
-    } catch {
-      return defaultValue
-    }
-  })
-
-  const setValue = (value: T | ((prev: T) => T)) => {
-    setState(prev => {
-      const newValue = typeof value === 'function' ? (value as (prev: T) => T)(prev) : value
-      try {
-        localStorage.setItem(key, JSON.stringify(newValue))
-      } catch {
-        // Ignore localStorage errors
-      }
-      return newValue
-    })
-  }
-
-  return [state, setValue]
-}
 
 interface Voice {
   id: string
@@ -119,9 +94,9 @@ const initialVoices: Voice[] = [
 ]
 
 export default function App() {
-  const [voices, setVoices] = useKV<Voice[]>('voices', initialVoices)
+  const [voices, setVoices] = useKV('voices', initialVoices)
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null)
-  const [audioHistory, setAudioHistory] = useKV<GeneratedAudio[]>('audioHistory', [])
+  const [audioHistory, setAudioHistory] = useKV('audioHistory', [] as GeneratedAudio[])
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationProgress, setGenerationProgress] = useState(0)
   const [isCloning, setIsCloning] = useState(false)

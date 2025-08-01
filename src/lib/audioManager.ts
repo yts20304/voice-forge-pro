@@ -279,7 +279,7 @@ export class AudioManager {
   /**
    * Validate audio file format and quality
    */
-  static validateAudioFile(file: File): Promise<{ isValid: boolean; error?: string; metadata?: any }> {
+  async validateAudioFile(file: File): Promise<{ isValid: boolean; error?: string; metadata?: any }> {
     return new Promise((resolve) => {
       const audio = new Audio()
       const url = URL.createObjectURL(file)

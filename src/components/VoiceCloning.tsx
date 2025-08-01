@@ -43,7 +43,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
       if (file.type.startsWith('audio/')) {
         try {
           // Validate audio file
-          const validation = await AudioManager.validateAudioFile(file)
+          const validation = await audioManager.validateAudioFile(file)
           
           if (!validation.isValid) {
             toast.error(`${file.name}: ${validation.error}`)
@@ -94,7 +94,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
         
         try {
           // Validate recorded audio
-          const validation = await AudioManager.validateAudioFile(file)
+          const validation = await audioManager.validateAudioFile(file)
           
           if (!validation.isValid) {
             toast.error(`Recording error: ${validation.error}`)
