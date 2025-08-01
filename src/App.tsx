@@ -2,13 +2,38 @@ import { useState, useEffect } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Waveform, VolumeHigh, Microphone, Clock, Sparkle } from '@phosphor-icons/react'
-import { useKV } from '@github/spark/hooks'
+import { Waveform, SpeakerHigh, Microphone, Clock, Sparkle } from '@phosphor-icons/react'
 import { VoiceLibrary } from '@/components/VoiceLibrary'
 import { TextToSpeech } from '@/components/TextToSpeech'
 import { VoiceCloning } from '@/components/VoiceCloning'
 import { AudioHistory } from '@/components/AudioHistory'
 import { toast } from 'sonner'
+
+// Simple localStorage hook replacement
+function useKV<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
+  const [state, setState] = useState<T>(() => {
+    try {
+      const item = localStorage.getItem(key)
+      return item ? JSON.parse(item) : defaultValue
+    } catch {
+      return defaultValue
+    }
+  })
+
+  const setValue = (value: T | ((prev: T) => T)) => {
+    setState(prev => {
+      const newValue = typeof value === 'function' ? (value as (prev: T) => T)(prev) : value
+      try {
+        localStorage.setItem(key, JSON.stringify(newValue))
+      } catch {
+        // Ignore localStorage errors
+      }
+      return newValue
+    })
+  }
+
+  return [state, setValue]
+}
 
 interface Voice {
   id: string
@@ -284,7 +309,7 @@ export default function App() {
           
           <div className="flex justify-center gap-4 mt-4">
             <Badge variant="secondary" className="gap-2">
-              <VolumeHigh className="w-4 h-4" />
+              <SpeakerHigh className="w-4 h-4" />
               {voices.length} Voices Available
             </Badge>
             <Badge variant="secondary" className="gap-2">
@@ -298,7 +323,7 @@ export default function App() {
         <Tabs defaultValue="generate" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="generate" className="gap-2">
-              <VolumeHigh className="w-4 h-4" />
+              <SpeakerHigh className="w-4 h-4" />
               Generate
             </TabsTrigger>
             <TabsTrigger value="voices" className="gap-2">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Pause, Download, VolumeHigh, Copy, FileText } from '@phosphor-icons/react'
+import { Play, Pause, Download, SpeakerHigh, Copy, FileText } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -195,12 +195,12 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
           >
             {isGenerating ? (
               <>
-                <VolumeHigh className="w-5 h-5 mr-2 animate-pulse" />
+                <SpeakerHigh className="w-5 h-5 mr-2 animate-pulse" />
                 Generating Voice... {Math.round(generationProgress)}%
               </>
             ) : (
               <>
-                <VolumeHigh className="w-5 h-5 mr-2" />
+                <SpeakerHigh className="w-5 h-5 mr-2" />
                 Generate Voice
               </>
             )}
@@ -217,7 +217,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <VolumeHigh className="w-5 h-5 text-accent" />
+              <SpeakerHigh className="w-5 h-5 text-accent" />
               Generated Audio
             </CardTitle>
             <CardDescription>
