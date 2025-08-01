@@ -165,7 +165,8 @@ class PerformanceManager {
       
       // Wait for a task to complete
       if (this.activeTasks.size >= this.maxConcurrentTasks) {
-        await Promise.race(Array.from(this.activeTasks.values()).map(task => task.promise))
+        const taskPromises = Array.from(this.activeTasks.values()).map(task => task.promise.catch(() => {}))
+        await Promise.race(taskPromises)
       }
     }
   }
@@ -174,13 +175,13 @@ class PerformanceManager {
    * Cancel low priority tasks to make room for high priority ones
    */
   private cancelLowPriorityTasks(): void {
-    for (const [taskId, task] of this.activeTasks) {
+    this.activeTasks.forEach((task, taskId) => {
       if (task.type === 'analyze' || task.type === 'download') {
         task.abortController?.abort()
         this.activeTasks.delete(taskId)
-        break
+        return false // break equivalent for forEach
       }
-    }
+    })
   }
 
   /**
@@ -209,9 +210,9 @@ class PerformanceManager {
    * Cancel all active tasks
    */
   cancelAllTasks(): void {
-    for (const task of this.activeTasks.values()) {
+    this.activeTasks.forEach(task => {
       task.abortController?.abort()
-    }
+    })
     this.activeTasks.clear()
   }
 

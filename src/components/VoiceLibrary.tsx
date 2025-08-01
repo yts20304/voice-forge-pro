@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Pause, Download, Waveform, Microphone, Settings, Upload, Clock } from '@phosphor-icons/react'
+import { Play, Pause, Download, Waveform, Microphone, Gear, Upload, Clock } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

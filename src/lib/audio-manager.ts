@@ -150,9 +150,9 @@ class AudioManager {
    * Stop all audio instances
    */
   stopAllAudio(): void {
-    for (const instance of this.instances.values()) {
+    this.instances.forEach(instance => {
       instance.cleanup()
-    }
+    })
     this.instances.clear()
     this.currentPlayingId = null
   }
@@ -178,9 +178,9 @@ class AudioManager {
     this.globalVolume = Math.max(0, Math.min(1, volume))
     
     // Update existing instances
-    for (const instance of this.instances.values()) {
+    this.instances.forEach(instance => {
       instance.audio.volume = instance.audio.volume * this.globalVolume
-    }
+    })
   }
 
   /**

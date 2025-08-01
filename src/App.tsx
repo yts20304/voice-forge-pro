@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Waveform, VolumeHigh, Microphone, Clock, Sparkle } from '@phosphor-icons/react'
+import { Waveform, SpeakerHigh, Microphone, Clock, Sparkle } from '@phosphor-icons/react'
 import { useKV } from '@github/spark/hooks'
 import { VoiceLibrary } from '@/components/VoiceLibrary'
 import { TextToSpeech } from '@/components/TextToSpeech'
@@ -331,7 +331,7 @@ export default function App() {
           
           <div className="flex justify-center gap-4 mt-4">
             <Badge variant="secondary" className="gap-2">
-              <VolumeHigh className="w-4 h-4" />
+              <SpeakerHigh className="w-4 h-4" />
               {voices.length} Voices Available
             </Badge>
             <Badge variant="secondary" className="gap-2">
@@ -345,7 +345,7 @@ export default function App() {
         <Tabs defaultValue="generate" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="generate" className="gap-2">
-              <VolumeHigh className="w-4 h-4" />
+              <SpeakerHigh className="w-4 h-4" />
               Generate
             </TabsTrigger>
             <TabsTrigger value="voices" className="gap-2">

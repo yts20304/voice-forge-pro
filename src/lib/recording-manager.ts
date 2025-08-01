@@ -3,6 +3,7 @@
  */
 
 import { checkAudioCompatibility, getRecordingConstraints } from './audio-validation'
+import { useState, useEffect } from 'react'
 
 export interface RecordingOptions {
   maxDuration?: number // seconds
@@ -32,7 +33,7 @@ export class RecordingManager {
   private durationTimer: number | null = null
   private maxDuration: number
   private options: RecordingOptions
-  private onStateChange?: (state: RecordingState) => void
+  private stateChangeCallback?: (state: RecordingState) => void
 
   constructor(options: RecordingOptions = {}) {
     this.maxDuration = options.maxDuration || 300 // 5 minutes default
@@ -70,8 +71,8 @@ export class RecordingManager {
   /**
    * Set state change callback
    */
-  onStateChange(callback: (state: RecordingState) => void): void {
-    this.onStateChange = callback
+  setStateChangeCallback(callback: (state: RecordingState) => void): void {
+    this.stateChangeCallback = callback
   }
 
   /**
@@ -259,7 +260,7 @@ export class RecordingManager {
    * Emit state change to callback
    */
   private emitStateChange(): void {
-    this.onStateChange?.(this.getState())
+    this.stateChangeCallback?.(this.getState())
   }
 
   /**
@@ -295,7 +296,7 @@ export class RecordingManager {
  * Hook for easy React integration
  */
 export function useRecordingManager(options: RecordingOptions = {}) {
-  const [state, setState] = React.useState<RecordingState>({
+  const [state, setState] = useState<RecordingState>({
     isRecording: false,
     isPaused: false,
     duration: 0,
@@ -303,13 +304,13 @@ export function useRecordingManager(options: RecordingOptions = {}) {
     stream: null
   })
 
-  const [manager] = React.useState(() => {
+  const [manager] = useState(() => {
     const mgr = new RecordingManager(options)
-    mgr.onStateChange(setState)
+    mgr.setStateChangeCallback(setState)
     return mgr
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       manager.destroy()
     }
@@ -324,6 +325,3 @@ export function useRecordingManager(options: RecordingOptions = {}) {
     isSupported: state.isSupported
   }
 }
-
-// Note: We'll add React import when we update the components
-declare const React: any

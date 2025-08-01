@@ -67,7 +67,7 @@ export function checkAudioCompatibility() {
   }
 
   // Check getUserMedia support
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
     compatibility.getUserMedia = true
   }
 

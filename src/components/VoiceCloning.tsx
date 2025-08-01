@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, Microphone, Play, Pause, Trash2, CheckCircle, XCircle, Clock, AlertTriangle } from '@phosphor-icons/react'
+import { Upload, Microphone, Play, Pause, Trash, CheckCircle, XCircle, Clock, Warning } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -59,7 +59,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
       }
     })
 
-    manager.onStateChange(setRecordingState)
+    manager.setStateChangeCallback(setRecordingState)
     setRecordingManager(manager)
 
     return () => {
@@ -305,7 +305,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
         {/* Browser Compatibility Warnings */}
         {(!compatibility.mediaRecorder || !compatibility.getUserMedia) && (
           <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
-            <AlertTriangle className="w-4 h-4 text-yellow-600" />
+            <Warning className="w-4 h-4 text-yellow-600" />
             <AlertDescription className="text-yellow-800 dark:text-yellow-200">
               <strong>Browser Compatibility Issues:</strong>
               <ul className="mt-2 list-disc list-inside space-y-1">
@@ -491,7 +491,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
                     onClick={() => removeSample(sample.id)}
                     className="text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
