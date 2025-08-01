@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Pause, Download, VolumeHigh, Copy, FileText } from '@phosphor-icons/react'
+import { Play, Pause, Download, SpeakerHigh, Copy, FileText } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -48,8 +48,8 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
       return
     }
 
-    if (text.length > 5000) {
-      toast.error('Text must be under 5000 characters')
+    if (text.length > 1000000) {
+      toast.error('Text must be under 1,000,000 characters')
       return
     }
 
@@ -132,14 +132,14 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
             <Label htmlFor="text-input">Your Text</Label>
             <Textarea
               id="text-input"
-              placeholder="Enter your text here... (max 5000 characters)"
+              placeholder="Enter your text here... (max 1,000,000 characters)"
               value={text}
               onChange={(e) => setText(e.target.value)}
               className="min-h-32 resize-none"
-              maxLength={5000}
+              maxLength={1000000}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{getCharacterCount()}/5000 characters</span>
+              <span>{getCharacterCount().toLocaleString()}/1,000,000 characters</span>
               <span>≈ {getEstimatedDuration()}s duration</span>
             </div>
           </div>
@@ -195,12 +195,12 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
           >
             {isGenerating ? (
               <>
-                <VolumeHigh className="w-5 h-5 mr-2 animate-pulse" />
+                <SpeakerHigh className="w-5 h-5 mr-2 animate-pulse" />
                 Generating Voice... {Math.round(generationProgress)}%
               </>
             ) : (
               <>
-                <VolumeHigh className="w-5 h-5 mr-2" />
+                <SpeakerHigh className="w-5 h-5 mr-2" />
                 Generate Voice
               </>
             )}
@@ -217,7 +217,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <VolumeHigh className="w-5 h-5 text-accent" />
+              <SpeakerHigh className="w-5 h-5 text-accent" />
               Generated Audio
             </CardTitle>
             <CardDescription>

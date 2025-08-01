@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Upload, Microphone, Play, Pause, Trash2, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
+import { Upload, Microphone, Play, Pause, Trash, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -317,7 +317,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
                     onClick={() => removeSample(sample.id)}
                     className="text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash className="w-4 h-4" />
                   </Button>
                 </div>
               ))}

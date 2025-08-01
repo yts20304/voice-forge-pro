@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Clock, Download, Play, Pause, Trash2, FileAudio, Calendar } from '@phosphor-icons/react'
+import { Clock, Download, Play, Pause, Trash, FileAudio, Calendar } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -200,7 +200,7 @@ export function AudioHistory({ audioHistory, onDeleteAudio, onPlayAudio, isPlayi
                         onClick={() => onDeleteAudio(audio.id)}
                         className="text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

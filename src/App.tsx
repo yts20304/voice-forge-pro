@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Waveform, VolumeHigh, Microphone, Clock, Sparkle } from '@phosphor-icons/react'
-import { useKV } from '@github/spark/hooks'
+import { Waveform, SpeakerHigh, Microphone, Clock, Sparkle } from '@phosphor-icons/react'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { VoiceLibrary } from '@/components/VoiceLibrary'
 import { TextToSpeech } from '@/components/TextToSpeech'
 import { VoiceCloning } from '@/components/VoiceCloning'
 import { AudioHistory } from '@/components/AudioHistory'
+import { synthesizeVoice, generateVoicePreview } from '@/lib/audioSynthesis'
 import { toast } from 'sonner'
 
 interface Voice {
@@ -47,7 +48,7 @@ const initialVoices: Voice[] = [
     description: 'Professional female voice, perfect for presentations',
     isTrending: true,
     quality: 'ultra',
-    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+    previewUrl: 'preview-available'
   },
   {
     id: 'marcus-narrator',
@@ -56,7 +57,7 @@ const initialVoices: Voice[] = [
     description: 'Deep male voice, ideal for storytelling and documentaries',
     isTrending: true,
     quality: 'ultra',
-    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+    previewUrl: 'preview-available'
   },
   {
     id: 'emma-friendly',
@@ -64,7 +65,7 @@ const initialVoices: Voice[] = [
     category: 'professional',
     description: 'Warm and friendly voice for customer service',
     quality: 'premium',
-    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+    previewUrl: 'preview-available'
   },
   {
     id: 'james-corporate',
@@ -72,7 +73,7 @@ const initialVoices: Voice[] = [
     category: 'professional',
     description: 'Authoritative corporate voice for business content',
     quality: 'premium',
-    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+    previewUrl: 'preview-available'
   },
   {
     id: 'celebrity-morgan',
@@ -80,7 +81,7 @@ const initialVoices: Voice[] = [
     category: 'celebrity',
     description: 'Distinctive deep voice reminiscent of famous narrator',
     quality: 'ultra',
-    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+    previewUrl: 'preview-available'
   },
   {
     id: 'celebrity-scarlett',
@@ -88,14 +89,14 @@ const initialVoices: Voice[] = [
     category: 'celebrity',
     description: 'Sultry female voice with distinctive tone',
     quality: 'ultra',
-    previewUrl: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmM'
+    previewUrl: 'preview-available'
   }
 ]
 
 export default function App() {
-  const [voices, setVoices] = useKV<Voice[]>('voices', initialVoices)
+  const [voices, setVoices] = useLocalStorage<Voice[]>('voices', initialVoices)
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null)
-  const [audioHistory, setAudioHistory] = useKV<GeneratedAudio[]>('audioHistory', [])
+  const [audioHistory, setAudioHistory] = useLocalStorage<GeneratedAudio[]>('audioHistory', [])
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationProgress, setGenerationProgress] = useState(0)
   const [isCloning, setIsCloning] = useState(false)
@@ -115,7 +116,7 @@ export default function App() {
     setSelectedVoice(voice)
   }
 
-  const handlePreviewVoice = (voice: Voice) => {
+  const handlePreviewVoice = async (voice: Voice) => {
     if (playingVoiceId === voice.id) {
       // Stop playing
       if (currentAudio) {
@@ -130,32 +131,32 @@ export default function App() {
         currentAudio.pause()
       }
       
-      // Simulate voice preview with a brief audio clip
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
-      
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      
-      // Different frequencies for different voices
-      const freq = voice.category === 'celebrity' ? 150 : 
-                   voice.name.includes('Marcus') || voice.name.includes('James') ? 120 : 200
-      
-      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime)
-      oscillator.type = 'sine'
-      
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2)
-      
-      oscillator.start(audioContext.currentTime)
-      oscillator.stop(audioContext.currentTime + 2)
-      
-      setPlayingVoiceId(voice.id)
-      
-      setTimeout(() => {
+      try {
+        setPlayingVoiceId(voice.id)
+        
+        // Generate actual voice preview
+        const previewUrl = await generateVoicePreview(voice)
+        
+        const audio = new Audio(previewUrl)
+        audio.addEventListener('ended', () => {
+          setPlayingVoiceId(null)
+          setCurrentAudio(null)
+          URL.revokeObjectURL(previewUrl) // Clean up blob URL
+        })
+        audio.addEventListener('error', () => {
+          setPlayingVoiceId(null)
+          setCurrentAudio(null)
+          toast.error('Failed to play voice preview')
+        })
+        
+        await audio.play()
+        setCurrentAudio(audio)
+        
+      } catch (error) {
+        console.error('Preview error:', error)
         setPlayingVoiceId(null)
-      }, 2000)
+        toast.error('Failed to generate voice preview')
+      }
     }
   }
 
@@ -181,23 +182,35 @@ export default function App() {
     setGenerationProgress(0)
 
     try {
-      await simulateProgress(setGenerationProgress, 4000)
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          const newProgress = prev + Math.random() * 10
+          return newProgress >= 95 ? 95 : newProgress
+        })
+      }, 200)
 
-      // Generate a mock audio URL (in real app, this would be from your TTS API)
-      const audioUrl = `data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBhN+2e/bfiwEHXfS8+CQOA0Pe7jo554OBwdOpdTmu1wUBCOM1ejAUAAA`
+      // Generate actual audio using Web Speech API
+      const audioUrl = await synthesizeVoice(text, voice, settings)
+      
+      clearInterval(progressInterval)
+      setGenerationProgress(100)
 
       const newAudio: GeneratedAudio = {
         id: Date.now().toString(),
         text,
         voice,
         audioUrl,
-        duration: Math.ceil(text.split(' ').length / 2.5), // Rough estimation
+        duration: Math.ceil(text.split(' ').length / (2.5 * settings.speed)), // Adjust for speed
         quality: settings.quality,
         createdAt: new Date()
       }
 
       setAudioHistory(prev => [newAudio, ...prev])
       return newAudio
+    } catch (error) {
+      console.error('Generation error:', error)
+      throw error
     } finally {
       setIsGenerating(false)
       setGenerationProgress(0)
@@ -284,7 +297,7 @@ export default function App() {
           
           <div className="flex justify-center gap-4 mt-4">
             <Badge variant="secondary" className="gap-2">
-              <VolumeHigh className="w-4 h-4" />
+              <SpeakerHigh className="w-4 h-4" />
               {voices.length} Voices Available
             </Badge>
             <Badge variant="secondary" className="gap-2">
@@ -298,7 +311,7 @@ export default function App() {
         <Tabs defaultValue="generate" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="generate" className="gap-2">
-              <VolumeHigh className="w-4 h-4" />
+              <SpeakerHigh className="w-4 h-4" />
               Generate
             </TabsTrigger>
             <TabsTrigger value="voices" className="gap-2">
