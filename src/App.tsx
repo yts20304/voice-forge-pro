@@ -9,6 +9,9 @@ import { TextToSpeech } from '@/components/TextToSpeech'
 import { VoiceCloning } from '@/components/VoiceCloning'
 import { AudioHistory } from '@/components/AudioHistory'
 import { toast } from 'sonner'
+import { audioManager } from '@/lib/audio-manager'
+import { performanceManager } from '@/lib/performance-manager'
+import { createAudioError, reportAudioError, getErrorMessage } from '@/lib/error-handling'
 
 interface Voice {
   id: string
@@ -102,7 +105,6 @@ export default function App() {
   const [cloningProgress, setCloningProgress] = useState(0)
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null)
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     // Set default selected voice
@@ -111,51 +113,63 @@ export default function App() {
     }
   }, [voices, selectedVoice])
 
+  // Cleanup audio manager on unmount
+  useEffect(() => {
+    return () => {
+      audioManager.cleanup()
+      performanceManager.cleanup()
+    }
+  }, [])
+
   const handleVoiceSelect = (voice: Voice) => {
     setSelectedVoice(voice)
   }
 
-  const handlePreviewVoice = (voice: Voice) => {
-    if (playingVoiceId === voice.id) {
-      // Stop playing
-      if (currentAudio) {
-        currentAudio.pause()
-        currentAudio.currentTime = 0
-      }
-      setPlayingVoiceId(null)
-      setCurrentAudio(null)
-    } else {
-      // Start playing
-      if (currentAudio) {
-        currentAudio.pause()
-      }
+  const handlePreviewVoice = async (voice: Voice) => {
+    try {
+      const voicePreviewId = `voice-preview-${voice.id}`
       
-      // Simulate voice preview with a brief audio clip
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
-      
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      
-      // Different frequencies for different voices
-      const freq = voice.category === 'celebrity' ? 150 : 
-                   voice.name.includes('Marcus') || voice.name.includes('James') ? 120 : 200
-      
-      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime)
-      oscillator.type = 'sine'
-      
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2)
-      
-      oscillator.start(audioContext.currentTime)
-      oscillator.stop(audioContext.currentTime + 2)
-      
-      setPlayingVoiceId(voice.id)
-      
-      setTimeout(() => {
+      if (audioManager.isPlaying(voicePreviewId)) {
+        // Stop playing
+        audioManager.stopAudio(voicePreviewId)
         setPlayingVoiceId(null)
-      }, 2000)
+      } else {
+        // Stop any other playing audio
+        audioManager.stopAllAudio()
+        
+        // Generate preview audio using Web Audio API for demo
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        // Different frequencies for different voices
+        const freq = voice.category === 'celebrity' ? 150 : 
+                     voice.name.includes('Marcus') || voice.name.includes('James') ? 120 : 200
+        
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime)
+        oscillator.type = 'sine'
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2)
+        
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 2)
+        
+        setPlayingVoiceId(voice.id)
+        
+        // Clean up after preview
+        setTimeout(async () => {
+          setPlayingVoiceId(null)
+          await audioContext.close()
+        }, 2000)
+      }
+    } catch (error) {
+      const audioError = createAudioError('Failed to preview voice', 'playback', true)
+      reportAudioError(audioError, 'voice-preview')
+      toast.error(getErrorMessage(audioError))
     }
   }
 
@@ -177,56 +191,84 @@ export default function App() {
   }
 
   const handleGenerate = async (text: string, voice: Voice, settings: any): Promise<GeneratedAudio> => {
-    setIsGenerating(true)
-    setGenerationProgress(0)
-
-    try {
-      await simulateProgress(setGenerationProgress, 4000)
-
-      // Generate a mock audio URL (in real app, this would be from your TTS API)
-      const audioUrl = `data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBhN+2e/bfiwEHXfS8+CQOA0Pe7jo554OBwdOpdTmu1wUBCOM1ejAUAAA`
-
-      const newAudio: GeneratedAudio = {
-        id: Date.now().toString(),
-        text,
-        voice,
-        audioUrl,
-        duration: Math.ceil(text.split(' ').length / 2.5), // Rough estimation
-        quality: settings.quality,
-        createdAt: new Date()
-      }
-
-      setAudioHistory(prev => [newAudio, ...prev])
-      return newAudio
-    } finally {
-      setIsGenerating(false)
+    return performanceManager.executeWithConcurrencyLimit('tts', async (abortSignal) => {
+      setIsGenerating(true)
       setGenerationProgress(0)
-    }
+
+      try {
+        await simulateProgress(setGenerationProgress, 4000)
+
+        // Check if operation was aborted
+        if (abortSignal?.aborted) {
+          throw createAudioError('Generation was cancelled', 'unknown', false)
+        }
+
+        // Generate a mock audio URL (in real app, this would be from your TTS API)
+        const audioUrl = `data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBhN+2e/bfiwEHXfS8+CQOA0Pe7jo554OBwdOpdTmu1wUBCOM1ejAUAAA`
+
+        const newAudio: GeneratedAudio = {
+          id: Date.now().toString(),
+          text,
+          voice,
+          audioUrl,
+          duration: Math.ceil(text.split(' ').length / 2.5), // Rough estimation
+          quality: settings.quality,
+          createdAt: new Date()
+        }
+
+        setAudioHistory(prev => [newAudio, ...prev])
+        toast.success('Voice generated successfully!')
+        return newAudio
+      } catch (error) {
+        const audioError = createAudioError('Failed to generate voice', 'unknown', true)
+        reportAudioError(audioError, 'voice-generation')
+        toast.error(getErrorMessage(audioError))
+        throw audioError
+      } finally {
+        setIsGenerating(false)
+        setGenerationProgress(0)
+      }
+    }, 'high')
   }
 
   const handleVoiceCloned = async (voiceName: string, samples: AudioSample[]) => {
-    setIsCloning(true)
-    setCloningProgress(0)
-
-    try {
-      await simulateProgress(setCloningProgress, 8000)
-
-      const newVoice: Voice = {
-        id: `custom-${Date.now()}`,
-        name: voiceName,
-        category: 'custom',
-        description: `Custom voice cloned from ${samples.length} samples`,
-        isCustom: true,
-        quality: 'ultra',
-        previewUrl: samples[0]?.url
-      }
-
-      setVoices(prev => [...prev, newVoice])
-      toast.success(`Voice "${voiceName}" has been successfully cloned!`)
-    } finally {
-      setIsCloning(false)
+    return performanceManager.executeWithConcurrencyLimit('clone', async (abortSignal) => {
+      setIsCloning(true)
       setCloningProgress(0)
-    }
+
+      try {
+        await simulateProgress(setCloningProgress, 8000)
+
+        // Check if operation was aborted
+        if (abortSignal?.aborted) {
+          throw createAudioError('Voice cloning was cancelled', 'unknown', false)
+        }
+
+        // Create blob URL using performance manager for the first sample
+        const previewUrl = samples[0] ? performanceManager.createBlobUrl(samples[0].file, `preview-${voiceName}`) : undefined
+
+        const newVoice: Voice = {
+          id: `custom-${Date.now()}`,
+          name: voiceName,
+          category: 'custom',
+          description: `Custom voice cloned from ${samples.length} samples`,
+          isCustom: true,
+          quality: 'ultra',
+          previewUrl
+        }
+
+        setVoices(prev => [...prev, newVoice])
+        toast.success(`Voice "${voiceName}" has been successfully cloned!`)
+      } catch (error) {
+        const audioError = createAudioError('Failed to clone voice', 'unknown', true)
+        reportAudioError(audioError, 'voice-cloning')
+        toast.error(getErrorMessage(audioError))
+        throw audioError
+      } finally {
+        setIsCloning(false)
+        setCloningProgress(0)
+      }
+    }, 'normal')
   }
 
   const handleDeleteAudio = (id: string) => {
@@ -234,34 +276,39 @@ export default function App() {
     toast.success('Audio deleted successfully')
   }
 
-  const handlePlayAudio = (audio: GeneratedAudio) => {
-    if (playingAudioId === audio.id) {
-      // Stop playing
-      if (currentAudio) {
-        currentAudio.pause()
-        currentAudio.currentTime = 0
-      }
-      setPlayingAudioId(null)
-      setCurrentAudio(null)
-    } else {
-      // Stop any currently playing audio
-      if (currentAudio) {
-        currentAudio.pause()
-      }
-
-      // Create and play new audio
-      const newAudio = new Audio(audio.audioUrl)
-      newAudio.addEventListener('ended', () => {
-        setPlayingAudioId(null)
-        setCurrentAudio(null)
-      })
-      newAudio.addEventListener('pause', () => {
-        setPlayingAudioId(null)
-      })
+  const handlePlayAudio = async (audio: GeneratedAudio) => {
+    try {
+      const audioId = `generated-${audio.id}`
       
-      newAudio.play()
-      setCurrentAudio(newAudio)
-      setPlayingAudioId(audio.id)
+      if (audioManager.isPlaying(audioId)) {
+        // Stop playing
+        audioManager.pauseAudio(audioId)
+        setPlayingAudioId(null)
+      } else {
+        // Stop any other playing audio
+        audioManager.stopAllAudio()
+        
+        // Create and play new audio with proper error handling
+        audioManager.createAudio(audioId, audio.audioUrl, {
+          onEnded: () => {
+            setPlayingAudioId(null)
+          },
+          onError: (error) => {
+            const audioError = createAudioError('Failed to play audio', 'playback', true, { audioId, error })
+            reportAudioError(audioError, 'audio-playback')
+            toast.error(getErrorMessage(audioError))
+            setPlayingAudioId(null)
+          }
+        })
+        
+        await audioManager.playAudio(audioId)
+        setPlayingAudioId(audio.id)
+      }
+    } catch (error) {
+      const audioError = createAudioError('Failed to play audio', 'playback', true)
+      reportAudioError(audioError, 'audio-playback')
+      toast.error(getErrorMessage(audioError))
+      setPlayingAudioId(null)
     }
   }
 

@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { downloadAudioWithRetry, createAudioError, getErrorMessage } from '@/lib/error-handling'
+import { toast } from 'sonner'
 
 interface GeneratedAudio {
   id: string
@@ -50,13 +52,20 @@ export function AudioHistory({ audioHistory, onDeleteAudio, onPlayAudio, isPlayi
   const uniqueVoices = Array.from(new Set(audioHistory.map(audio => audio.voice.id)))
     .map(voiceId => audioHistory.find(audio => audio.voice.id === voiceId)!.voice)
 
-  const handleDownload = (audio: GeneratedAudio) => {
-    const link = document.createElement('a')
-    link.href = audio.audioUrl
-    link.download = `voiceforge-${audio.voice.name}-${audio.id}.mp3`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleDownload = async (audio: GeneratedAudio) => {
+    try {
+      const filename = `voiceforge-${audio.voice.name}-${audio.id}.mp3`
+      await downloadAudioWithRetry(audio.audioUrl, filename, {
+        maxAttempts: 3,
+        onRetry: (attempt) => {
+          toast.info(`Download failed, retrying... (${attempt}/3)`)
+        }
+      })
+      toast.success('Audio downloaded successfully!')
+    } catch (error) {
+      const audioError = createAudioError('Failed to download audio', 'network', true)
+      toast.error(getErrorMessage(audioError))
+    }
   }
 
   const getTotalDuration = () => {

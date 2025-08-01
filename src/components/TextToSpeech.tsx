@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, Pause, Download, VolumeHigh, Copy, FileText } from '@phosphor-icons/react'
+import { Play, Pause, Download, VolumeHigh, Copy, FileText, Volume2 } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { audioManager } from '@/lib/audio-manager'
+import { downloadAudioWithRetry, createAudioError, getErrorMessage } from '@/lib/error-handling'
 
 interface Voice {
   id: string
@@ -37,10 +39,10 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState([1.0])
   const [pitch, setPitch] = useState([1.0])
+  const [volume, setVolume] = useState([0.8])
   const [quality, setQuality] = useState('high')
   const [isPlaying, setIsPlaying] = useState(false)
   const [generatedAudio, setGeneratedAudio] = useState<GeneratedAudio | null>(null)
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
 
   const handleGenerate = async () => {
     if (!selectedVoice || !text.trim()) {
@@ -68,38 +70,53 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
     }
   }
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!generatedAudio) return
 
-    if (currentAudio) {
-      if (isPlaying) {
-        currentAudio.pause()
+    try {
+      const audioId = `tts-preview-${generatedAudio.id}`
+      
+      if (audioManager.isPlaying(audioId)) {
+        audioManager.pauseAudio(audioId)
         setIsPlaying(false)
       } else {
-        currentAudio.play()
+        // Create audio with volume control and error handling
+        audioManager.createAudio(audioId, generatedAudio.audioUrl, {
+          volume: volume[0],
+          onEnded: () => setIsPlaying(false),
+          onError: (error) => {
+            const audioError = createAudioError('Failed to play generated audio', 'playback', true)
+            toast.error(getErrorMessage(audioError))
+            setIsPlaying(false)
+          }
+        })
+        
+        await audioManager.playAudio(audioId)
         setIsPlaying(true)
       }
-    } else {
-      const audio = new Audio(generatedAudio.audioUrl)
-      audio.addEventListener('ended', () => setIsPlaying(false))
-      audio.addEventListener('pause', () => setIsPlaying(false))
-      audio.play()
-      setCurrentAudio(audio)
-      setIsPlaying(true)
+    } catch (error) {
+      const audioError = createAudioError('Failed to play audio', 'playback', true)
+      toast.error(getErrorMessage(audioError))
+      setIsPlaying(false)
     }
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedAudio) return
     
-    const link = document.createElement('a')
-    link.href = generatedAudio.audioUrl
-    link.download = `voiceforge-${generatedAudio.voice.name}-${Date.now()}.mp3`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    
-    toast.success('Audio downloaded successfully!')
+    try {
+      const filename = `voiceforge-${generatedAudio.voice.name}-${Date.now()}.mp3`
+      await downloadAudioWithRetry(generatedAudio.audioUrl, filename, {
+        maxAttempts: 3,
+        onRetry: (attempt) => {
+          toast.info(`Download failed, retrying... (${attempt}/3)`)
+        }
+      })
+      toast.success('Audio downloaded successfully!')
+    } catch (error) {
+      const audioError = createAudioError('Failed to download audio', 'network', true)
+      toast.error(getErrorMessage(audioError))
+    }
   }
 
   const getCharacterCount = () => text.length
@@ -145,7 +162,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
           </div>
 
           {/* Advanced Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
             <div className="space-y-2">
               <Label>Speech Speed</Label>
               <Slider
@@ -170,6 +187,29 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
                 className="w-full"
               />
               <span className="text-xs text-muted-foreground">{pitch[0]}x</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Volume</Label>
+              <div className="flex items-center gap-3">
+                <Volume2 className="w-4 h-4 text-muted-foreground" />
+                <Slider
+                  value={volume}
+                  onValueChange={(newVolume) => {
+                    setVolume(newVolume)
+                    // Update volume for currently playing audio
+                    if (generatedAudio) {
+                      const audioId = `tts-preview-${generatedAudio.id}`
+                      audioManager.setVolume(audioId, newVolume[0])
+                    }
+                  }}
+                  max={1}
+                  min={0}
+                  step={0.1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-12">{Math.round(volume[0] * 100)}%</span>
+              </div>
             </div>
 
             <div className="space-y-2">
