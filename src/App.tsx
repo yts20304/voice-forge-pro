@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { Toaster } from '@/components/ui/sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -194,7 +194,6 @@ export default function App() {
   const [cloningProgress, setCloningProgress] = useState(0)
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null)
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null)
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     // Set default selected voice
@@ -262,7 +261,7 @@ export default function App() {
     })
   }
 
-  const handleGenerate = async (text: string, voice: Voice, settings: any): Promise<GeneratedAudio> => {
+  const handleGenerate = async (text: string, voice: Voice, settings: { quality: string }): Promise<GeneratedAudio> => {
     setIsGenerating(true)
     setGenerationProgress(0)
 

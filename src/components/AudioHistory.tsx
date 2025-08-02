@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { audioManager } from '@/lib/audioManager'
 import { toast } from 'sonner'
 
 interface GeneratedAudio {
@@ -104,7 +103,7 @@ export function AudioHistory({ audioHistory, onDeleteAudio, onPlayAudio, isPlayi
           </div>
           
           <div className="space-y-2">
-            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+            <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'duration') => setSortBy(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>

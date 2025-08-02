@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Play, Pause, Download, SpeakerHigh, Copy, FileText, SpeakerLow } from '@phosphor-icons/react'
+import { Play, Pause, Download, SpeakerHigh, FileText, SpeakerLow } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -30,7 +30,7 @@ interface GeneratedAudio {
 
 interface TextToSpeechProps {
   selectedVoice: Voice | null
-  onGenerate: (text: string, voice: Voice, settings: any) => Promise<GeneratedAudio>
+  onGenerate: (text: string, voice: Voice, settings: { quality: string; speed: number; pitch: number }) => Promise<GeneratedAudio>
   isGenerating: boolean
   generationProgress: number
 }
@@ -67,7 +67,7 @@ export function TextToSpeech({ selectedVoice, onGenerate, isGenerating, generati
       const audio = await onGenerate(text, selectedVoice, settings)
       setGeneratedAudio(audio)
       toast.success('Voice generated successfully!')
-    } catch (error) {
+    } catch {
       toast.error('Failed to generate voice. Please try again.')
     }
   }
