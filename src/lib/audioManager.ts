@@ -37,7 +37,7 @@ export class AudioManager {
   private async initializeAudioContext(): Promise<void> {
     try {
       if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
         
         // Resume context if suspended (required by browser policies)
         if (this.audioContext.state === 'suspended') {
@@ -72,7 +72,7 @@ export class AudioManager {
       }
 
       const onEnded = () => cleanup()
-      const onError = (error: any) => {
+      const onError = (error: Event) => {
         console.error('Audio playback error:', error)
         cleanup()
         throw new Error('Audio playback failed')
@@ -212,7 +212,7 @@ export class AudioManager {
       
       this.activeAudio.set(`preview-${config.voiceId}`, {
         id: `preview-${config.voiceId}`,
-        audio: { pause: () => source.stop(), currentTime: 0 } as any,
+        audio: { pause: () => source.stop(), currentTime: 0 } as HTMLAudioElement,
         cleanup
       })
 
@@ -279,7 +279,7 @@ export class AudioManager {
   /**
    * Validate audio file format and quality
    */
-  async validateAudioFile(file: File): Promise<{ isValid: boolean; error?: string; metadata?: any }> {
+  async validateAudioFile(file: File): Promise<{ isValid: boolean; error?: string; metadata?: { duration: number; hasAudio: boolean } }> {
     return new Promise((resolve) => {
       const audio = new Audio()
       const url = URL.createObjectURL(file)

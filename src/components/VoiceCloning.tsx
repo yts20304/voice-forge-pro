@@ -1,12 +1,10 @@
 import { useState, useRef } from 'react'
-import { Upload, Microphone, Play, Pause, Trash, CheckCircle, XCircle, Clock, Warning } from '@phosphor-icons/react'
+import { Upload, Microphone, Play, Pause, Trash, CheckCircle, Clock, Warning } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
 import { WaveformVisualizer } from '@/components/AudioVisualizer'
 import { audioManager } from '@/lib/audioManager'
 import { toast } from 'sonner'
@@ -127,7 +125,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
       setMediaRecorder(recorder)
       setIsRecording(true)
       toast.info('Recording started...')
-    } catch (error) {
+    } catch {
       toast.error('Could not access microphone')
     }
   }
@@ -201,7 +199,7 @@ export function VoiceCloning({ onVoiceCloned, isCloning, cloningProgress }: Voic
       setVoiceDescription('')
       setAudioSamples([])
       toast.success('Voice cloned successfully!')
-    } catch (error) {
+    } catch {
       toast.error('Failed to clone voice. Please try again.')
     }
   }

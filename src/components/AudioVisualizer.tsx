@@ -47,7 +47,7 @@ export function AudioVisualizer({
     if (!audioElement || isInitialized) return
 
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       
       if (audioContext.state === 'suspended') {
         await audioContext.resume()
